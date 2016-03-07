@@ -169,8 +169,14 @@ void kernel_init(register uint32_t* const multiboot_information
    for you to do later. */
  threads[0].eip = executable_table[0];
  
+ kprints("First thread setup\n");
+
+ 
  /* Go to user space. */
  go_to_user_space();
+ 
+kprints("Went to user space\n");
+
 }
 
 void handle_system_call(void)
@@ -196,4 +202,5 @@ void handle_system_call(void)
  }
 
  go_to_user_space();
+
 }
