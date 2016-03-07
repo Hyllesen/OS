@@ -12,6 +12,8 @@
 
  .global _start
  .global halt_the_machine
+ .global sysenter_entry_point
+ .global go_to_user_space
  .global kernel_stack
 	
  .text
@@ -94,6 +96,51 @@ halt_the_machine:
  hlt    # halt the processor until the next unmasked external interrupt
  jmp    halt_the_machine
 
+sysenter_entry_point:
+ push   %eax
+ mov    $16,%eax
+ mov    %ax,%ds
+ mov    %ax,%es
+ mov    %ax,%fs
+ mov    %ax,%gs
+ mov    current_thread,%eax
+
+ # Save all necessary registers. Note that eax is on the stack, see above.
+ # The system call wrappers used by user programs will place user space esp
+ # in ecx and user space eip in edx
+
+ popl   (%eax)
+ mov    %ebx,4(%eax)
+ mov    %esi,8(%eax)
+ mov    %edi,12(%eax)
+ mov    %ebp,16(%eax)
+ mov    %ecx,20(%eax)
+ mov    %edx,24(%eax)	
+
+ jmp    handle_system_call
+
+go_to_user_space:
+ mov    current_thread,%eax
+	
+ pushl  (%eax)
+ mov    4(%eax),%ebx
+ mov    8(%eax),%esi
+ mov    12(%eax),%edi
+ mov    16(%eax),%ebp
+ mov    20(%eax),%ecx
+ mov    24(%eax),%edx	
+		
+ # Before executing this code, the value of esp in user space is placed
+ # in ecx, the value of eip in user space is plaxed in edx. The value of eax
+ # in user space is placed as the first element on the stack, see below!
+ mov    $35,%eax
+ mov    %ax,%ds
+ mov    %ax,%es
+ mov    %ax,%fs
+ mov    %ax,%gs
+ pop    %eax
+ sysexit
+	
  .data
  .bss
 

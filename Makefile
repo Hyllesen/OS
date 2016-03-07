@@ -34,10 +34,15 @@ boot: bochs/boot.iso
 boot-gdb: bochs/boot.iso
 	(cd bochs/; nice -20 bochs-gdb -q -f bochsrc.gdb)
 
+# This variable holds object files which hold user level executables
+EXECUTABLES = \
+ objects/program_0/executable.o
+
 # This variable holds object files which are to be linked into the main
 # kernel image.
 KERNEL_OBJECTS = \
  objects/kernel/kernel.o \
+ $(EXECUTABLES) \
  objects/kernel/video.o
 
 KERNEL_SOURCES = \
@@ -64,6 +69,28 @@ objects/kernel/%.d: src/kernel/%.c | objects/kernel
 
 objects/kernel/%.o: src/kernel/%.c objects/kernel/%.d | objects/kernel
 	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c -o $@ $<
+
+objects/program_startup_code:
+	-mkdir -p objects/program_startup_code
+
+objects/program_startup_code/startup_32.o: src/program_startup_code/startup_32.s | objects/program_startup_code
+	$(AS) --32 -o objects/program_startup_code/startup_32.o src/program_startup_code/startup_32.s
+
+objects/program_0:
+	-mkdir -p objects/program_0
+
+objects/program_0/main.o: src/program_0/main.c src/program_include/scwrapper.h | objects/program_0
+	$(CC) $(CFLAGS) $(INCLUDE_DIRS) $(USER_INCLUDE_DIRS) $(OPTIMIZATIONFLAGS) -m32 -c -o objects/program_0/main.o src/program_0/main.c
+
+objects/program_0/executable: objects/program_startup_code/startup_32.o objects/program_0/main.o src/program_startup_code/program_link.ld | objects/program_0
+	$(LD) -m elf_i386 -z max-page-size=4096 -static -Tsrc/program_startup_code/program_link.ld --defsym __executable__=0 -o objects/program_0/executable objects/program_startup_code/startup_32.o objects/program_0/main.o
+
+objects/program_0/executable.o: objects/program_0/executable.stripped | objects/program_0
+	$(OBJCOPY) -O binary objects/program_0/executable.stripped objects/program_0/executable.bin
+	$(OBJCOPY) -I binary -O elf32-i386 -B i386 --rename-section .data=.exec,alloc,contents,load,readonly,data objects/program_0/executable.bin objects/program_0/executable.o
+
+objects/program_0/executable.stripped: objects/program_0/executable | objects/program_0
+	$(STRIP) -o objects/program_0/executable.stripped objects/program_0/executable
 
 # Misc rules
 clean:

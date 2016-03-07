@@ -9,24 +9,37 @@
 
 #include <stdint.h>
 #include <instruction_wrappers.h>
+#include <sysdefines.h>
 
 /* First some declarations for data structures and functions found in the
    assembly code or the linker script. */
+
+/*! Entry point into the kernel for system calls via sysenter. */
+extern uint8_t sysenter_entry_point[];
+
+/*! The kernel stack used when in the kernel. */
+extern uint8_t kernel_stack[];
+
+/*! Location of executable application 0. We put this into an array
+    later */
+extern uint8_t exec_0_start[];
 
 /*! Halts the machine. Will stop the machine and only reset will wake
     it up. */
 extern void halt_the_machine(void);
 
+/*! Go to user space. */
+extern void go_to_user_space(void) __attribute__ ((noreturn));
 
 /* Declarations for functions found in other C files. */
-
-/*! Clears the screen. */
-extern void cls();
 
 /*! Outputs a string to the VGA screen. */
 extern void
 kprints(const char* const string
         /*!< Points to a null terminated string */);
+		
+/*! Clears the screen */
+extern void cls();
 
 /*! Outputs an unsigned 32-bit value to the VGA screen. */
 extern void
@@ -34,9 +47,44 @@ kprinthex(const register uint32_t value /*! value to be printed. */);
 
 /* Declarations for this file. */
 
+/*! Defines a thread. */
+struct thread
+{
+ uint32_t eax;
+ uint32_t ebx;
+ uint32_t esi;
+ uint32_t edi;
+ uint32_t ebp;
+ uint32_t esp;
+ uint32_t eip; 
+};
+
+/*! Size of the array that holds starting addresses of applications */
+#define EXECUTABLE_TABLE_SIZE (1)
+
+/*! Array of starting addresses for all applications. The starting
+    address is the address of the first instruction to execute in each
+    program. */
+uintptr_t executable_table[EXECUTABLE_TABLE_SIZE] = 
+ {(uintptr_t)exec_0_start};
+
+/*! Maximum number of threads in the system. */
+#define MAX_THREADS 256
+
+/*! All threads in the system. */
+extern struct thread threads[MAX_THREADS];
+struct thread threads[MAX_THREADS];
+
+/*! The current thread running on the cpu. */
+extern struct thread* current_thread;
+struct thread* current_thread = &threads[0];
+
 /*! Initializes the kernel. */
 extern void kernel_init(register uint32_t* const multiboot_information)
  __attribute__ ((noreturn));
+
+/*! Handles one system call. */
+extern void handle_system_call(void);
 
 /* Definitions. */
 
@@ -100,12 +148,47 @@ void kernel_init(register uint32_t* const multiboot_information
                    ljmp $8,$1f\n \
                    1:" : : "b" (16) :);
  }
- cls();
+
+ /* Set up support for sysenter. */
+ /* The base code segment selector. This is used to set the other selectors. */
+ wrmsr(0x174, 8, 0);
+ /* Kernel stack pointer. We keep the top 4 bytes set to zero to keep GDB
+    happy. */
+ wrmsr(0x175, (uintptr_t)kernel_stack - 4, 0);
+ /* The entry point for sysenter. We will end up there at system calls. */
+ wrmsr(0x176, (uintptr_t)sysenter_entry_point, 0);
+ 
+ //Clear the screen
+ cls();	
+ 
  kprints("The kernel has booted!\n");
+ 
  kprints("Welcome to the OS!\n");
 
- /* Halt as we cannot do anything more right now. */ 
- halt_the_machine();
+ /* Set up the first thread. For now we do not set up a process. That is
+   for you to do later. */
+ threads[0].eip = executable_table[0];
+ 
+ /* Go to user space. */
+ go_to_user_space();
+}
 
- while(1) ;
+void handle_system_call(void)
+{
+ switch (current_thread->eax)
+ {
+  case SYSCALL_VERSION:
+  {
+   current_thread->eax = 0x00010000;
+   break;
+  }
+
+  default:
+  {
+   /* Unrecognized system call. Not good. */
+   current_thread->eax = ERROR_ILLEGAL_SYSCALL;
+  }
+ }
+
+ go_to_user_space();
 }

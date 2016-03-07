@@ -14,6 +14,10 @@ OUTPUT_ARCH ( "i386" )
 OUTPUT_FORMAT("elf32-i386")
 ENTRY(_start)
 
+MEMORY {
+  exe : ORIGIN = 0x300000, LENGTH = 3*128K
+}
+
 PHDRS
 {
  text PT_LOAD FILEHDR PHDRS FLAGS(5);
@@ -37,6 +41,16 @@ SECTIONS
   *.o (.data)
   . = ALIGN(4096);
  } : data
+
+ .executables : { 
+  . = ALIGN(128K);
+ exec_0_start = ABSOLUTE(.);
+ objects/program_0/executable.o (.exec*) 
+
+  . = ALIGN(128K);
+  end_of_applications = .;
+
+ } > exe
 
  .bss (LOADADDR(.data) + SIZEOF (.data)) :
  {
