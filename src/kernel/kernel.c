@@ -179,12 +179,12 @@ void kernel_init(register uint32_t* const multiboot_information
    for you to do later. */
  threads[0].eip = executable_table[0];
  
- kprints("Setting up first thread");
+ kprints("Done setting up first thread\n"); 
  
  /* Go to user space. */
  go_to_user_space();
  
- kprints("Go to user space");
+ kprints("Went to user space \n");
 }
 
 void handle_system_call(void)
@@ -192,21 +192,14 @@ void handle_system_call(void)
  switch (current_thread->eax)
  {
   case SYSCALL_VERSION:
-  {
-   current_thread->eax = 0x00010000;
-   break;
-  }
+	current_thread->eax = 0x00010000;
+	break;
   case SYSCALL_PRINTS:
-  {
-	  current_thread->eax = 0x00010000;
-	  break;
-  }
-
+	kprints("Syscall prints called \n");
+	break;
   default:
-  {
    /* Unrecognized system call. Not good. */
    current_thread->eax = ERROR_ILLEGAL_SYSCALL;
-  }
  }
 
  go_to_user_space();
