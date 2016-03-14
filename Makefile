@@ -36,7 +36,9 @@ boot-gdb: bochs/boot.iso
 
 # This variable holds object files which hold user level executables
 EXECUTABLES = \
- objects/program_0/executable.o
+ objects/program_0/executable.o \
+ objects/program_1/executable.o \
+ objects/program_2/executable.o
 
 # This variable holds object files which are to be linked into the main
 # kernel image.
@@ -91,6 +93,39 @@ objects/program_0/executable.o: objects/program_0/executable.stripped | objects/
 
 objects/program_0/executable.stripped: objects/program_0/executable | objects/program_0
 	$(STRIP) -o objects/program_0/executable.stripped objects/program_0/executable
+
+objects/program_1:
+	-mkdir -p objects/program_1
+
+objects/program_1/main.o: src/program_1/main.c src/program_include/scwrapper.h | objects/program_1
+	$(CC) $(CFLAGS) $(INCLUDE_DIRS) $(USER_INCLUDE_DIRS) $(OPTIMIZATIONFLAGS) -m32 -c -o objects/program_1/main.o src/program_1/main.c
+
+objects/program_1/executable: objects/program_startup_code/startup_32.o objects/program_1/main.o src/program_startup_code/program_link.ld | objects/program_1
+	$(LD) -m elf_i386 -z max-page-size=4096 -static -Tsrc/program_startup_code/program_link.ld --defsym __executable__=1 -o objects/program_1/executable objects/program_startup_code/startup_32.o objects/program_1/main.o
+
+objects/program_1/executable.o: objects/program_1/executable.stripped | objects/program_1
+	$(OBJCOPY) -O binary objects/program_1/executable.stripped objects/program_1/executable.bin
+	$(OBJCOPY) -I binary -O elf32-i386 -B i386 --rename-section .data=.exec,alloc,contents,load,readonly,data objects/program_1/executable.bin objects/program_1/executable.o
+
+objects/program_1/executable.stripped: objects/program_1/executable | objects/program_1
+	$(STRIP) -o objects/program_1/executable.stripped objects/program_1/executable
+
+
+objects/program_2:
+	-mkdir -p objects/program_2
+
+objects/program_2/main.o: src/program_2/main.c src/program_include/scwrapper.h | objects/program_2
+	$(CC) $(CFLAGS) $(INCLUDE_DIRS) $(USER_INCLUDE_DIRS) $(OPTIMIZATIONFLAGS) -m32 -c -o objects/program_2/main.o src/program_2/main.c
+
+objects/program_2/executable: objects/program_startup_code/startup_32.o objects/program_2/main.o src/program_startup_code/program_link.ld | objects/program_2
+	$(LD) -m elf_i386 -z max-page-size=4096 -static -Tsrc/program_startup_code/program_link.ld --defsym __executable__=2 -o objects/program_2/executable objects/program_startup_code/startup_32.o objects/program_2/main.o
+
+objects/program_2/executable.o: objects/program_2/executable.stripped | objects/program_2
+	$(OBJCOPY) -O binary objects/program_2/executable.stripped objects/program_2/executable.bin
+	$(OBJCOPY) -I binary -O elf32-i386 -B i386 --rename-section .data=.exec,alloc,contents,load,readonly,data objects/program_2/executable.bin objects/program_2/executable.o
+
+objects/program_2/executable.stripped: objects/program_2/executable | objects/program_2
+	$(STRIP) -o objects/program_2/executable.stripped objects/program_2/executable
 
 # Misc rules
 clean:

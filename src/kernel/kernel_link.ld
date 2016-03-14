@@ -46,8 +46,15 @@ SECTIONS
   . = ALIGN(128K);
  exec_0_start = ABSOLUTE(.);
  objects/program_0/executable.o (.exec*) 
+  . = ALIGN(128K);
+ exec_1_start = ABSOLUTE(.);
+ objects/program_1/executable.o (.exec*)
 
   . = ALIGN(128K);
+ exec_2_start = ABSOLUTE(.);
+ objects/program_2/executable.o (.exec*)
+  . = ALIGN(128K);
+
   end_of_applications = .;
 
  } > exe

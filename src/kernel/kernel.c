@@ -24,6 +24,14 @@ extern uint8_t kernel_stack[];
     later */
 extern uint8_t exec_0_start[];
 
+/*! Location of executable application 1. We put this into an array
+    later */
+extern uint8_t exec_1_start[];
+
+/*! Location of executable application 2. We put this into an array
+    later */
+extern uint8_t exec_2_start[];
+
 /*! Halts the machine. Will stop the machine and only reset will wake
     it up. */
 extern void halt_the_machine(void);
@@ -37,9 +45,6 @@ extern void go_to_user_space(void) __attribute__ ((noreturn));
 extern void
 kprints(const char* const string
         /*!< Points to a null terminated string */);
-		
-/*! Clears the screen */
-extern void cls();
 
 /*! Outputs an unsigned 32-bit value to the VGA screen. */
 extern void
@@ -56,17 +61,21 @@ struct thread
  uint32_t edi;
  uint32_t ebp;
  uint32_t esp;
- uint32_t eip; 
+ uint32_t eip;
+ /* The above members must be the first in the struct. Do not change the
+    order. */
 };
 
 /*! Size of the array that holds starting addresses of applications */
-#define EXECUTABLE_TABLE_SIZE (1)
+#define EXECUTABLE_TABLE_SIZE (3)
 
 /*! Array of starting addresses for all applications. The starting
     address is the address of the first instruction to execute in each
     program. */
 uintptr_t executable_table[EXECUTABLE_TABLE_SIZE] = 
- {(uintptr_t)exec_0_start};
+ {(uintptr_t)exec_0_start,
+  (uintptr_t)exec_1_start,
+  (uintptr_t)exec_2_start};
 
 /*! Maximum number of threads in the system. */
 #define MAX_THREADS 256
@@ -157,26 +166,15 @@ void kernel_init(register uint32_t* const multiboot_information
  wrmsr(0x175, (uintptr_t)kernel_stack - 4, 0);
  /* The entry point for sysenter. We will end up there at system calls. */
  wrmsr(0x176, (uintptr_t)sysenter_entry_point, 0);
- 
- //Clear the screen
- cls();	
- 
+
  kprints("The kernel has booted!\n");
- 
- kprints("Welcome to the OS!\n");
 
  /* Set up the first thread. For now we do not set up a process. That is
    for you to do later. */
  threads[0].eip = executable_table[0];
  
- kprints("First thread setup\n");
-
- 
  /* Go to user space. */
  go_to_user_space();
- 
-kprints("Went to user space\n");
-
 }
 
 void handle_system_call(void)
@@ -184,11 +182,6 @@ void handle_system_call(void)
  switch (current_thread->eax)
  {
   case SYSCALL_VERSION:
-  {
-   current_thread->eax = 0x00010000;
-   break;
-  }
-    case SYSCALL_PRINTS:
   {
    current_thread->eax = 0x00010000;
    break;
@@ -202,5 +195,4 @@ void handle_system_call(void)
  }
 
  go_to_user_space();
-
 }
