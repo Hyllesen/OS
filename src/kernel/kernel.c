@@ -46,6 +46,9 @@ extern void
 kprints(const char* const string
         /*!< Points to a null terminated string */);
 
+/* Clears the screen */
+extern void cls();
+
 /*! Outputs an unsigned 32-bit value to the VGA screen. */
 extern void
 kprinthex(const register uint32_t value /*! value to be printed. */);
@@ -166,6 +169,9 @@ void kernel_init(register uint32_t* const multiboot_information
  wrmsr(0x175, (uintptr_t)kernel_stack - 4, 0);
  /* The entry point for sysenter. We will end up there at system calls. */
  wrmsr(0x176, (uintptr_t)sysenter_entry_point, 0);
+ 
+ //Clear the screen
+ cls();
 
  kprints("The kernel has booted!\n");
 
@@ -173,8 +179,12 @@ void kernel_init(register uint32_t* const multiboot_information
    for you to do later. */
  threads[0].eip = executable_table[0];
  
+ kprints("Setting up first thread");
+ 
  /* Go to user space. */
  go_to_user_space();
+ 
+ kprints("Go to user space");
 }
 
 void handle_system_call(void)
@@ -185,6 +195,11 @@ void handle_system_call(void)
   {
    current_thread->eax = 0x00010000;
    break;
+  }
+  case SYSCALL_PRINTS:
+  {
+	  current_thread->eax = 0x00010000;
+	  break;
   }
 
   default:
