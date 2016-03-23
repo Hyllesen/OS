@@ -195,16 +195,9 @@ void handle_system_call(void)
 	current_thread->eax = 0x00010000;
 	break;
   case SYSCALL_PRINTS:
-	kprints("Syscall prints called \n");
-	/*
-	kprinthex(current_thread->ebp);
-	kprinthex(current_thread->ebx);
-	kprinthex(current_thread->edi);
-	kprinthex(current_thread->eip);
-	kprinthex(current_thread->esi);
-	kprinthex(current_thread->esp); 
-	 */
-	kprinthex(0x00010000);
+	kprints((char *) current_thread->edi);
+
+
 	break;
   default:
    /* Unrecognized system call. Not good. */

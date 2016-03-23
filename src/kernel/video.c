@@ -89,25 +89,27 @@ void WriteCharacter(unsigned char c, unsigned char forecolour, unsigned char bac
 }
 
 void
-kprinthex(const register uint32_t value)
+kprinthex(const register uint32_t *value)
 {
-
+	
+	
+	/*
 	unsigned char buf[4];
  
-	/* pack into buf string */
+	 pack into buf string 
 	buf[0] = value >> 24;
 	buf[1] = value >> 16;
 	buf[2] = value >> 8;
 	buf[3] = value;
+	 */
 	
 	int x;	
 	for(x = 0; x < 4; x++) {
-		char c = x + '0';
-		WriteCharacter(buf[x], textColor, backgroundColor,xPosition,yPosition);
-		WriteCharacter(c, textColor, backgroundColor,xPosition,yPosition);		
+		WriteCharacter('x', textColor, backgroundColor,xPosition,yPosition);		
 		xPosition++;
 	}
 	yPosition++;
+	xPosition = 0;
 	
 	
 }
