@@ -98,6 +98,8 @@ extern void kernel_init(register uint32_t* const multiboot_information)
 /*! Handles one system call. */
 extern void handle_system_call(void);
 
+int newprocessid;
+
 /* Definitions. */
 
 void kernel_init(register uint32_t* const multiboot_information
@@ -196,7 +198,30 @@ void handle_system_call(void)
 	break;
   case SYSCALL_PRINTS:
 	kprints((char *) current_thread->edi);
+	break;
+  case SYSCALL_CREATEPROCESS:
+	kprints("SYSCALL_CREATEPROCESS\n");
+	newprocessid = current_thread->edi; //ProcessID is id for new process created
+	threads[newprocessid-1].eip =  current_thread->esp;
+	threads[0].eip = executable_table[newprocessid];	
+	current_thread->eax = ALL_OK;
+	//int returnvalue;
+	//returnvalue = current_thread->ebx;
+	break;
+  case SYSCALL_TERMINATE:
+	kprints("SYSCALL_TERMINATE");
+	newprocessid--;
+	//threads[0].eip = threads[processid];
 
+	
+/**
+ * uint32_t eax;
+ uint32_t ebx;
+ uint32_t esi;
+ uint32_t edi;
+ uint32_t esp;
+ uint32_t eip;
+  * */
 
 	break;
   default:
