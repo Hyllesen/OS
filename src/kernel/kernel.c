@@ -91,12 +91,17 @@ struct thread threads[MAX_THREADS];
 extern struct thread* current_thread;
 struct thread* current_thread = &threads[0];
 
+
 /*! Initializes the kernel. */
 extern void kernel_init(register uint32_t* const multiboot_information)
  __attribute__ ((noreturn));
 
 /*! Handles one system call. */
 extern void handle_system_call(void);
+
+/*! Keeps track of newest process id created */
+int newprocessid;
+
 
 /* Definitions. */
 
@@ -183,7 +188,8 @@ void kernel_init(register uint32_t* const multiboot_information
  
  /* Go to user space. */
  go_to_user_space();
- 
+
+
  kprints("Went to user space \n");
 }
 
@@ -192,17 +198,24 @@ void handle_system_call(void)
  switch (current_thread->eax)
  {
   case SYSCALL_VERSION:
-	current_thread->eax = 0x00010000;
-	break;
+	 current_thread->eax = 0x00010000;
+	 break;
   case SYSCALL_PRINTS:
-	kprints((char *) current_thread->edi);
+	 kprints((char *) current_thread->edi);
+	 break;
+  case SYSCALL_CREATEPROCESS:
+  newprocessid = current_thread->edi; //Get the ID for new process from edi
+  threads[newprocessid] = *current_thread; //Sets the old thread in the thread struct with the current stack pointer
+  threads[0].eip = executable_table[newprocessid]; //Set current thread as the new thread
+    break;
+  case SYSCALL_TERMINATE:
+  newprocessid--;
+    threads[0].eip = threads[newprocessid].eip;
+    break;
 
-
-	break;
   default:
    /* Unrecognized system call. Not good. */
    current_thread->eax = ERROR_ILLEGAL_SYSCALL;
  }
-
  go_to_user_space();
 }
