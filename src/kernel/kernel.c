@@ -99,10 +99,15 @@ extern void kernel_init(register uint32_t* const multiboot_information)
 /*! Handles one system call. */
 extern void handle_system_call(void);
 
+<<<<<<< HEAD
 /*! Keeps track of newest process id created */
 int newprocessid;
 
 
+=======
+int newprocessid;
+
+>>>>>>> b29feb0b405bc0b64c5f40d8d9d04a7ff5a0b74d
 /* Definitions. */
 
 void kernel_init(register uint32_t* const multiboot_information
@@ -201,6 +206,7 @@ void handle_system_call(void)
 	 current_thread->eax = 0x00010000;
 	 break;
   case SYSCALL_PRINTS:
+<<<<<<< HEAD
 	 kprints((char *) current_thread->edi);
 	 break;
   case SYSCALL_CREATEPROCESS:
@@ -213,6 +219,35 @@ void handle_system_call(void)
     threads[0].eip = threads[newprocessid].eip;
     break;
 
+=======
+	kprints((char *) current_thread->edi);
+	break;
+  case SYSCALL_CREATEPROCESS:
+	kprints("SYSCALL_CREATEPROCESS\n");
+	newprocessid = current_thread->edi; //ProcessID is id for new process created
+	threads[newprocessid-1].eip =  current_thread->esp;
+	threads[0].eip = executable_table[newprocessid];	
+	current_thread->eax = ALL_OK;
+	//int returnvalue;
+	//returnvalue = current_thread->ebx;
+	break;
+  case SYSCALL_TERMINATE:
+	kprints("SYSCALL_TERMINATE");
+	newprocessid--;
+	//threads[0].eip = threads[processid];
+
+	
+/**
+ * uint32_t eax;
+ uint32_t ebx;
+ uint32_t esi;
+ uint32_t edi;
+ uint32_t esp;
+ uint32_t eip;
+  * */
+
+	break;
+>>>>>>> b29feb0b405bc0b64c5f40d8d9d04a7ff5a0b74d
   default:
    /* Unrecognized system call. Not good. */
    current_thread->eax = ERROR_ILLEGAL_SYSCALL;
