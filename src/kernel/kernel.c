@@ -41,13 +41,14 @@ extern void go_to_user_space(void) __attribute__ ((noreturn));
 
 /* Declarations for functions found in other C files. */
 
+
+/* Clears screen */
+extern void cls();
+
 /*! Outputs a string to the VGA screen. */
 extern void
 kprints(const char* const string
         /*!< Points to a null terminated string */);
-
-/* Clears the screen */
-extern void cls();
 
 /*! Outputs an unsigned 32-bit value to the VGA screen. */
 extern void
@@ -91,7 +92,6 @@ struct thread threads[MAX_THREADS];
 extern struct thread* current_thread;
 struct thread* current_thread = &threads[0];
 
-
 /*! Initializes the kernel. */
 extern void kernel_init(register uint32_t* const multiboot_information)
  __attribute__ ((noreturn));
@@ -99,16 +99,31 @@ extern void kernel_init(register uint32_t* const multiboot_information)
 /*! Handles one system call. */
 extern void handle_system_call(void);
 
-<<<<<<< HEAD
-/*! Keeps track of newest process id created */
-int newprocessid;
+
+/*! Maximum number of threads in the system. */
+#define MAX_PROCESSES 256
+
+/* Defines a process */
+struct process {
+  struct thread proc_thread;
+  // address space??
+};
+
+/*! All processes in the system. */
+extern struct process processes[MAX_PROCESSES];
+struct process processes[MAX_PROCESSES];
+
+/*! The current process */
+extern struct process* current_process;
+struct process* current_process = &processes[0];
+
+extern int numOfProcesses;
+extern int programNum;
 
 
-=======
-int newprocessid;
-
->>>>>>> b29feb0b405bc0b64c5f40d8d9d04a7ff5a0b74d
 /* Definitions. */
+int numOfProcesses = 0;
+int programNum = 0;
 
 void kernel_init(register uint32_t* const multiboot_information
                                           /*!< Points to a multiboot
@@ -179,23 +194,23 @@ void kernel_init(register uint32_t* const multiboot_information
  wrmsr(0x175, (uintptr_t)kernel_stack - 4, 0);
  /* The entry point for sysenter. We will end up there at system calls. */
  wrmsr(0x176, (uintptr_t)sysenter_entry_point, 0);
- 
- //Clear the screen
- cls();
 
+ /* clear the screen (Nicklas' edit) */
+ cls();
  kprints("The kernel has booted!\n");
+
+ current_process->proc_thread = threads[0];
+ current_thread = &current_process->proc_thread;
+ current_thread->eip = executable_table[0];
+ 
 
  /* Set up the first thread. For now we do not set up a process. That is
    for you to do later. */
- threads[0].eip = executable_table[0];
- 
- kprints("Done setting up first thread\n"); 
+ //threads[0].eip = executable_table[0];
+
  
  /* Go to user space. */
  go_to_user_space();
-
-
- kprints("Went to user space \n");
 }
 
 void handle_system_call(void)
@@ -203,54 +218,80 @@ void handle_system_call(void)
  switch (current_thread->eax)
  {
   case SYSCALL_VERSION:
-	 current_thread->eax = 0x00010000;
-	 break;
+  {
+   current_thread->eax = 0x00010000;
+   break;
+  }
+
   case SYSCALL_PRINTS:
-<<<<<<< HEAD
-	 kprints((char *) current_thread->edi);
-	 break;
+  {
+   /*kprints("SYSCALL_PRINTS WAS CALLED!\n");*/
+  //krpints string argument fra %edi
+   kprints((char *)current_thread->edi);
+   break;
+  }
+
   case SYSCALL_CREATEPROCESS:
-  newprocessid = current_thread->edi; //Get the ID for new process from edi
-  threads[newprocessid] = *current_thread; //Sets the old thread in the thread struct with the current stack pointer
-  threads[0].eip = executable_table[newprocessid]; //Set current thread as the new thread
+  {
+    //kprints("SYSCALL_CREATEPROCESS WAS CALLED!\n");
+    /*
+      One system call, createprocess, creates a new process with a single thread
+      The createprocess system call takes a parameter in the edi register . This parameter is
+      an integer which is an index into the array of executable programs. The program will be
+      started as a process by the system call.
+    */
+    // when thread is created, all registers in it must be initialized
+    
+    // Increment process counter
+    numOfProcesses++;
+
+    // Giv den næste proces den næste tråd
+    processes[numOfProcesses].proc_thread = threads[numOfProcesses];
+
+    // Sæt current_process til den nye proces
+    current_process = &processes[numOfProcesses];
+
+    // Aflæs hvilket program der skal startes
+    programNum = current_thread->edi;
+
+    // Return ALL_OK or ERROR
+    current_thread->eax = ALL_OK;
+    //current_thread->eax = ERROR;
+
+    // Sæt current_thread til current_process' tråd
+    current_thread = &current_process->proc_thread;
+
+    // Indlæs program i current_thread
+    current_thread->eip = executable_table[programNum];    
+
     break;
+  }
+
+/*
+terminates the current thread as well as process if it has no other threads.
+The terminate system call terminates the currently running thread. The system call
+does not take any parameters and will never return to the caller. It does thus not return
+any values.
+*/
   case SYSCALL_TERMINATE:
-  newprocessid--;
-    threads[0].eip = threads[newprocessid].eip;
+  {
+    numOfProcesses--;
+
+    // Sæt current_process til den næste proces i "stakken"
+    current_process = &processes[numOfProcesses];
+
+    // Sæt current_thread til current_process' tråd
+    current_thread = &current_process->proc_thread;
+
     break;
+  }
 
-=======
-	kprints((char *) current_thread->edi);
-	break;
-  case SYSCALL_CREATEPROCESS:
-	kprints("SYSCALL_CREATEPROCESS\n");
-	newprocessid = current_thread->edi; //ProcessID is id for new process created
-	threads[newprocessid-1].eip =  current_thread->esp;
-	threads[0].eip = executable_table[newprocessid];	
-	current_thread->eax = ALL_OK;
-	//int returnvalue;
-	//returnvalue = current_thread->ebx;
-	break;
-  case SYSCALL_TERMINATE:
-	kprints("SYSCALL_TERMINATE");
-	newprocessid--;
-	//threads[0].eip = threads[processid];
-
-	
-/**
- * uint32_t eax;
- uint32_t ebx;
- uint32_t esi;
- uint32_t edi;
- uint32_t esp;
- uint32_t eip;
-  * */
-
-	break;
->>>>>>> b29feb0b405bc0b64c5f40d8d9d04a7ff5a0b74d
   default:
+  {
    /* Unrecognized system call. Not good. */
    current_thread->eax = ERROR_ILLEGAL_SYSCALL;
+  }
  }
+
  go_to_user_space();
 }
