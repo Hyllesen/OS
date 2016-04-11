@@ -11,6 +11,8 @@
 #include <instruction_wrappers.h>
 #include <sysdefines.h>
 
+#include "mm.h"
+
 /* First some declarations for data structures and functions found in the
    assembly code or the linker script. */
 
@@ -19,6 +21,10 @@ extern uint8_t sysenter_entry_point[];
 
 /*! The kernel stack used when in the kernel. */
 extern uint8_t kernel_stack[];
+
+/*! Points to after the last byte used by the embedded
+    executable applications. */
+extern uint8_t end_of_applications[];
 
 /*! Location of executable application 0. We put this into an array
     later */
@@ -41,10 +47,6 @@ extern void go_to_user_space(void) __attribute__ ((noreturn));
 
 /* Declarations for functions found in other C files. */
 
-
-/* Clears screen */
-extern void cls();
-
 /*! Outputs a string to the VGA screen. */
 extern void
 kprints(const char* const string
@@ -55,6 +57,12 @@ extern void
 kprinthex(const register uint32_t value /*! value to be printed. */);
 
 /* Declarations for this file. */
+
+/*! This points to the lowest address of memory you will manage */
+uintptr_t lowest_available_physical_memory;
+
+/*! This points to the highest address of memory you will manage */
+uintptr_t top_of_available_physical_memory;
 
 /*! Defines a thread. */
 struct thread
@@ -80,6 +88,9 @@ uintptr_t executable_table[EXECUTABLE_TABLE_SIZE] =
  {(uintptr_t)exec_0_start,
   (uintptr_t)exec_1_start,
   (uintptr_t)exec_2_start};
+  
+/*! Clears the screen */
+extern void cls();
 
 /*! Maximum number of threads in the system. */
 #define MAX_THREADS 256
@@ -98,7 +109,6 @@ extern void kernel_init(register uint32_t* const multiboot_information)
 
 /*! Handles one system call. */
 extern void handle_system_call(void);
-
 
 /*! Maximum number of threads in the system. */
 #define MAX_PROCESSES 256
@@ -120,10 +130,11 @@ struct process* current_process = &processes[0];
 extern int numOfProcesses;
 extern int programNum;
 
-
 /* Definitions. */
 int numOfProcesses = 0;
 int programNum = 0;
+
+/* Definitions. */
 
 void kernel_init(register uint32_t* const multiboot_information
                                           /*!< Points to a multiboot
@@ -137,6 +148,14 @@ void kernel_init(register uint32_t* const multiboot_information
  /* Check if the boot loader left information on memory. */
  if (!(1 & *multiboot_information))
   halt_the_machine();
+
+ /* Extract information on how much memory is available in the machine. */
+ top_of_available_physical_memory =
+  ((uintptr_t)(*(multiboot_information+2) + 1024)) * 1024;
+ lowest_available_physical_memory = (uintptr_t) end_of_applications;
+
+ /* Initialize the memory system. */
+ initialize();
 
  /* Check if we can use sysenter/sysret. It is highly likely that sysenter
     is supported, it has been since Pentium 2, so this is really a sanity
@@ -285,6 +304,15 @@ any values.
 
     break;
   }
+  
+  /*
+   * 
+   */
+   case SYSCALL_ALLOCATE: 
+   {
+	   kprints("SYSCALL ALLOCATE WAS CALLED\n");
+	   break;
+   }
 
   default:
   {
