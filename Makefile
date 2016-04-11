@@ -15,7 +15,8 @@ OPTIMIZATION_CFLAGS ?= -O3
 # This variable holds the compilation flags
 CFLAGS ?= -msoft-float -mno-mmx -mno-sse -Wall -fno-builtin \
           -Werror -fno-strict-aliasing -fno-common -pedantic \
-          -std=gnu99 -m32 -march=i386 $(OPTIMIZATION_CFLAGS)
+          -std=gnu99 -m32 -march=i386 -fno-stack-protector \
+          $(OPTIMIZATION_CFLAGS)
 
 INCLUDE_DIRS = -Iinclude/
 USER_INCLUDE_DIRS = -Isrc/program_include/
@@ -44,11 +45,13 @@ EXECUTABLES = \
 # kernel image.
 KERNEL_OBJECTS = \
  objects/kernel/kernel.o \
+ objects/kernel/mm.o \
  $(EXECUTABLES) \
  objects/kernel/video.o
 
 KERNEL_SOURCES = \
  src/kernel/kernel.c \
+ src/kernel/mm.c \
  src/kernel/video.c
 
 # Rules for the kernel

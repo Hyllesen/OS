@@ -19,7 +19,6 @@
 #include <sysdefines.h>
 #include <stdint.h>
 
-
 /*! Wrapper for the system call that returns the version of the kernel. */
 static inline int32_t
 version(void)
